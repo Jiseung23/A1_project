@@ -6,3 +6,4 @@ pandas
 folium
 yfinance
 streamlit_folium
+openpyxl
