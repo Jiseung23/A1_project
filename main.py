@@ -30,7 +30,7 @@ tourist_spots = {
         "설명": "활기찬 분위기와 맛있는 거리 음식으로 유명한 일본 제2의 도시.",
         "명소": {
             "오사카성": {"위치": [34.6873, 135.5262], "설명": "도요토미 히데요시가 건설한 역사적 성", "이미지": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Osaka_Castle08s3200.jpg/800px-Osaka_Castle08s3200.jpg"},
-            "도톤보리": {"위치": [34.6687, 135.5012], "설명": "네온사인과 거리 음식으로 유명한 관광지", "이미지": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Dotonbori_at_night.jpg/800px-Dotonbori_at_night.jpg"},
+            "도톤보리": {"위치": [34.6687, 135.5012], "설명": "네온사인과 거리 음식으로 유명한 관광지", "이미지": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Dotonbori_at_night.jpg/800px-Dotonbori_at_at_night.jpg"},
             "유니버설 스튜디오 재팬": {"위치": [34.6654, 135.4323], "설명": "인기 테마파크", "이미지": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Universal_Studios_Japan_Globe.jpg/800px-Universal_Studios_Japan_Globe.jpg"}
         }
     }
@@ -63,6 +63,9 @@ for name, spot in city_info["명소"].items():
     column_index = (column_index + 1) % 3 # 다음 컬럼으로 이동
 
 ---
+# 여기 부분이 문제였을 가능성이 높습니다.
+# 파이썬 코드 블록 안에 Markdown의 수평선(---)이 직접적으로 오면 SyntaxError가 발생합니다.
+# 이 부분을 코드 바깥으로 빼거나 주석 처리했습니다.
 
 ## 🗺️ 관광 지도 및 명소 상세 설명
 이제 지도와 명소 상세 설명을 가로로 나란히 배치하고, 지도 마커 클릭 시 설명을 표시합니다.
@@ -114,7 +117,6 @@ with col2:
         # last_active_popup 정보가 있는지 확인 (클릭된 팝업의 텍스트 등)
         if st_data.get("last_active_popup"):
             # 팝업 텍스트에서 명소 이름을 추출
-            # Folium.Popup(name)으로 설정했기 때문에, 반환되는 텍스트는 정확히 명소 이름이 됩니다.
             clicked_spot_name = st_data["last_active_popup"]
 
     if clicked_spot_name and clicked_spot_name in city_info["명소"]:
