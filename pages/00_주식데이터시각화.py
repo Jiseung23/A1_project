@@ -1,76 +1,108 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-# 페이지 레이아웃 설정
-st.set_page_config(layout="wide")
-
-st.title("글로벌 시가총액 Top 10 기업 주가 변화 (최근 3년)")
-st.write("이 목록은 현재 시점의 실제 글로벌 시가총액 Top 10과 다를 수 있으며, 예시를 위해 선정되었습니다.")
-
-# 글로벌 시가총액 상위 10개 기업 목록 (예시)
-# 실제 프로젝트에서는 최신 데이터를 가져오는 API를 사용하는 것이 좋습니다.
-top_10_tickers = {
-    "Apple": "AAPL",
-    "Microsoft": "MSFT",
-    "NVIDIA": "NVDA",
-    "Amazon": "AMZN",
-    "Alphabet (Google)": "GOOGL",
-    "Meta Platforms": "META",
-    "Tesla": "TSLA",
-    "Berkshire Hathaway": "BRK-A", # BRK-B도 있지만, BRK-A로 예시
-    "Eli Lilly and Company": "LLY",
-    "Broadcom": "AVGO" # 예시를 위해 Cisco 대신 Broadcom 추가
-}
-
-# 날짜 설정 (최근 3년)
-end_date = datetime.now()
-start_date = end_date - timedelta(days=3 * 365) # 대략 3년
-
-@st.cache_data # 데이터를 캐시하여 앱 로딩 속도 개선
-def get_stock_data(tickers, start, end):
+def get_top_10_companies():
     """
-    yfinance를 사용하여 지정된 티커의 주가 데이터를 가져옵니다.
+    글로벌 시가총액 상위 10개 기업의 티커를 반환합니다.
+    (실제 시가총액 순위는 변동하므로, 대략적인 목록을 사용합니다.)
     """
-    data = pd.DataFrame()
-    for name, ticker in tickers.items():
-        try:
-            df = yf.download(ticker, start=start, end=end)
-            if not df.empty:
-                data[name] = df['Adj Close']
-            else:
-                st.warning(f"'{name}' ({ticker})의 데이터를 가져오지 못했습니다. 티커를 확인해주세요.")
-        except Exception as e:
-            st.error(f"'{name}' ({ticker}) 데이터를 가져오는 중 오류 발생: {e}")
-    return data
+    # 2025년 6월 기준 예상되는 상위 기업들 (변동 가능성 있음)
+    # yfinance를 통해 직접 시가총액을 가져오기 어렵기 때문에,
+    # 일반적으로 상위권에 있는 기업들을 선정합니다.
+    return {
+        "Apple": "AAPL",
+        "Microsoft": "MSFT",
+        "NVIDIA": "NVDA",
+        "Amazon": "AMZN",
+        "Alphabet (Google)": "GOOGL", # 또는 GOOG
+        "Meta Platforms": "META",
+        "Tesla": "TSLA",
+        "Berkshire Hathaway": "BRK-A", # 또는 BRK-B
+        "Eli Lilly": "LLY",
+        "Saudi Aramco": "2222.SR" # 사우디 아람코는 yfinance에서 심볼이 다를 수 있음
+    }
 
-# 주가 데이터 가져오기
-stock_data = get_stock_data(top_10_tickers, start_date, end_date)
+def fetch_stock_data(ticker, start_date, end_date):
+    """
+    지정된 티커의 주가 데이터를 가져옵니다.
+    """
+    try:
+        data = yf.download(ticker, start=start_date, end=end_date)
+        return data['Adj Close']
+    except Exception as e:
+        st.error(f"Error fetching data for {ticker}: {e}")
+        return None
 
-if not stock_data.empty:
-    st.subheader("주가 변화 (첫 날 기준 100으로 정규화)")
+def create_stock_chart(df, title):
+    """
+    주가 데이터를 기반으로 Plotly 차트를 생성합니다.
+    """
+    fig = go.Figure()
+    for col in df.columns:
+        fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
 
-    # 비교를 위해 첫 날을 기준으로 정규화
-    normalized_stock_data = stock_data / stock_data.iloc[0] * 100
-
-    # Plotly를 사용하여 라인 차트 시각화
-    fig = px.line(
-        normalized_stock_data,
-        title="글로벌 시가총액 Top 10 기업 주가 변화 (최근 3년, 첫 날 = 100)",
-        labels={"value": "주가 지수 (첫 날 = 100)", "index": "날짜"},
-        hover_name=normalized_stock_data.columns,
-        line_shape="linear" # 선 모양 설정
+    fig.update_layout(
+        title_text=title,
+        xaxis_title="날짜",
+        yaxis_title="조정 종가",
+        hovermode="x unified",
+        legend_title="기업",
+        height=600
     )
-    fig.update_layout(hovermode="x unified") # 마우스 오버 시 모든 선에 대한 정보 표시
-    st.plotly_chart(fig, use_container_width=True) # 컨테이너 너비에 맞춰 차트 표시
+    return fig
 
-    st.subheader("원본 주가 데이터 (조정 종가)")
-    st.dataframe(stock_data) # 원본 데이터프레임 표시
+def main():
+    st.set_page_config(layout="wide")
+    st.title("글로벌 시가총액 상위 10개 기업 주가 변화")
 
-else:
-    st.warning("주가 데이터를 가져오지 못했습니다. 인터넷 연결 및 티커 정보를 확인해주세요.")
+    # 최근 3년 날짜 설정
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=3 * 365) # 대략 3년
 
-st.markdown("---")
-st.markdown("데이터 출처: [Yahoo Finance](https://finance.yahoo.com/)")
+    st.write(f"**데이터 기간:** {start_date.strftime('%Y년 %m월 %d일')} 부터 {end_date.strftime('%Y년 %m월 %d일')} 까지")
+
+    top_companies = get_top_10_companies()
+    
+    all_stock_data = pd.DataFrame()
+    
+    st.info("주가 데이터를 가져오는 중입니다. 잠시만 기다려 주세요...")
+
+    for company_name, ticker in top_companies.items():
+        st.write(f"'{company_name}' ({ticker}) 데이터 가져오는 중...")
+        stock_data = fetch_stock_data(ticker, start_date, end_date)
+        if stock_data is not None:
+            all_stock_data[company_name] = stock_data
+        
+    if not all_stock_data.empty:
+        # 결측치 제거 또는 보간 (선택 사항)
+        all_stock_data = all_stock_data.dropna()
+
+        if not all_stock_data.empty:
+            st.success("데이터를 성공적으로 가져왔습니다!")
+            st.subheader("주가 변화 차트")
+            fig = create_stock_chart(all_stock_data, "글로벌 시총 상위 10개 기업 주가 변화 (지난 3년)")
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.subheader("주가 데이터 미리보기")
+            st.dataframe(all_stock_data.tail()) # 최신 데이터 몇 개 보여주기
+        else:
+            st.warning("선택된 기간 동안 유효한 주가 데이터가 없습니다.")
+    else:
+        st.error("어떤 기업의 주가 데이터도 가져오지 못했습니다. 티커를 확인하거나 인터넷 연결 상태를 확인해 주세요.")
+
+    st.markdown(
+        """
+        ---
+        **참고:**
+        * 시가총액 상위 10개 기업 목록은 현재 시점을 기준으로 예상한 것이며, 실제 순위는 변동될 수 있습니다.
+        * `yfinance` 라이브러리를 통해 주가 데이터를 가져옵니다.
+        * 사우디 아람코(`2222.SR`)와 같은 일부 해외 주식은 `yfinance`에서 데이터 제공이 불안정하거나 심볼이 다를 수 있습니다.
+        * 데이터 로딩에 시간이 걸릴 수 있습니다.
+        """
+    )
+
+if __name__ == "__main__":
+    main()
