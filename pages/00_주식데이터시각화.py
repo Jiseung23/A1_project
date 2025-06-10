@@ -35,22 +35,37 @@ def get_stock_data(tickers, period="3y"):
     end_date = datetime.now()
     start_date = end_date - timedelta(days=3 * 365) # 대략 3년 전 데이터 (윤년 고려 안 함)
 
-    data = {}
+    all_stock_series = [] # 개별 주식 시리즈를 저장할 리스트
+
     for name, ticker in tickers.items():
         try:
             # auto_adjust=False로 설정하여 'Adj Close' 컬럼을 명시적으로 가져옴
             df = yf.download(ticker, start=start_date, end=end_date, auto_adjust=False)
             if not df.empty and 'Adj Close' in df.columns:
-                data[name] = df['Adj Close']
+                series = df['Adj Close'].rename(name) # 시리즈 이름을 기업 이름으로 변경
+                all_stock_series.append(series)
             elif not df.empty and 'Close' in df.columns:
                 # 'Adj Close'가 없는 경우 'Close'를 차선책으로 사용 (경고 메시지 출력)
                 st.warning(f"경고: **{name} ({ticker})** 에 대한 'Adj Close' 데이터가 없습니다. 대신 'Close' 데이터를 사용합니다.")
-                data[name] = df['Close']
+                series = df['Close'].rename(name)
+                all_stock_series.append(series)
             else:
                 st.warning(f"경고: **{name} ({ticker})** 에 대한 유효한 주가 데이터를 가져올 수 없습니다.")
         except Exception as e:
             st.error(f"오류: **{name} ({ticker})** 데이터 로딩 중 오류 발생: `{e}`")
-    return pd.DataFrame(data)
+
+    # 모든 주식 시리즈를 공통된 날짜 인덱스에 맞춰 병합
+    if all_stock_series:
+        # concat을 사용하여 인덱스를 기준으로 병합하고, 공통되지 않은 날짜는 NaN으로 채움
+        merged_df = pd.concat(all_stock_series, axis=1)
+        # NaN 값은 앞의 유효한 값으로 채우거나(ffill), 뒤의 유효한 값으로 채울 수 있음(bfill)
+        # 여기서는 간단히 NaN을 0으로 채우거나(fill_value=0), 또는 그냥 둘 수도 있습니다.
+        # 시각화 목적상 NaN을 그대로 두는 것이 더 자연스러울 수 있습니다.
+        # merged_df = merged_df.fillna(method='ffill') # 이전 값으로 채우기
+        return merged_df
+    else:
+        st.warning("경고: 모든 기업에 대한 주가 데이터를 가져오는 데 실패했습니다.")
+        return pd.DataFrame() # 빈 데이터프레임 반환
 
 # --- 애플리케이션 본문 ---
 st.subheader("📊 지난 3년간 주요 기업 주가 변화")
@@ -90,9 +105,3 @@ else:
 
 st.markdown("---")
 st.info("💡 이 애플리케이션은 `yfinance`를 사용하여 데이터를 가져옵니다. 데이터는 실시간이 아닐 수 있으며, 학습 목적으로만 사용해야 합니다.")
-
-# --- 참고: 스트림릿 클라우드 배포를 위한 requirements.txt ---
-# streamlit
-# yfinance
-# pandas
-# plotly
