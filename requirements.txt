@@ -1,6 +1,6 @@
-folium
-streamlit-folium
-yfinance
-pandas
+streamlit
 matplotlib
-koreanize_matplotlib
+seaborn
+numpy
+pandas
+folium
