@@ -4,8 +4,7 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="일본 관광지 가이드", layout="wide")
 
-# 관광지 정보 (이미지 URL 추가)
-# 실제 이미지 URL이나 로컬 경로로 변경해주세요.
+# 관광지 정보 (이미지 URL 포함)
 tourist_spots = {
     "도쿄": {
         "위치": [35.682839, 139.759455],
@@ -45,12 +44,8 @@ city_info = tourist_spots[selected_city]
 st.title(f"🇯🇵 {selected_city} 관광 가이드")
 st.markdown(city_info["설명"])
 
----
-
 ## 📌 추천 관광지 목록
-추천 관광지 목록을 이미지와 함께 가로로 배열합니다.
-
-columns = st.columns(3) # 3칸으로 나눔
+columns = st.columns(3)  # 3칸으로 나눔
 column_index = 0
 
 for name, spot in city_info["명소"].items():
@@ -58,30 +53,21 @@ for name, spot in city_info["명소"].items():
         if "이미지" in spot and spot["이미지"]:
             st.image(spot["이미지"], caption=name, use_column_width=True)
         else:
-            st.warning(f"'{name}' 에 대한 이미지가 없습니다.") # 이미지가 없을 경우 경고 메시지
-        st.markdown(f"**{name}**") # 이미지 아래에 관광지 이름
-    column_index = (column_index + 1) % 3 # 다음 컬럼으로 이동
-
----
-# 여기 부분이 문제였을 가능성이 높습니다.
-# 파이썬 코드 블록 안에 Markdown의 수평선(---)이 직접적으로 오면 SyntaxError가 발생합니다.
-# 이 부분을 코드 바깥으로 빼거나 주석 처리했습니다.
+            st.warning(f"'{name}' 에 대한 이미지가 없습니다.")  # 이미지 없을 때 경고 메시지
+        st.markdown(f"**{name}**")  # 관광지 이름 표시
+    column_index = (column_index + 1) % 3  # 다음 컬럼으로 이동
 
 ## 🗺️ 관광 지도 및 명소 상세 설명
-이제 지도와 명소 상세 설명을 가로로 나란히 배치하고, 지도 마커 클릭 시 설명을 표시합니다.
-
-col1, col2 = st.columns([2, 1]) # 지도를 2, 설명을 1 비율로 나눔
+col1, col2 = st.columns([2, 1])  # 지도 2, 설명 1 비율로 나눔
 
 with col1:
     st.subheader("관광 지도")
-    # 지도 생성
     m = folium.Map(
         location=city_info["위치"],
         zoom_start=12,
         tiles='OpenStreetMap',
         attr='© OpenStreetMap contributors'
     )
-
     # 중심 마커
     folium.Marker(
         city_info["위치"],
@@ -89,35 +75,24 @@ with col1:
         icon=folium.Icon(color='blue')
     ).add_to(m)
 
-    # 관광지 마커 추가 (마커와 함께 명소 이름 표시)
+    # 명소 마커 추가
     for name, spot in city_info["명소"].items():
         folium.Marker(
             location=spot["위치"],
-            # 마커에 마우스 오버 시 나타나는 텍스트 (명소 이름)
             tooltip=name,
-            # 마커 클릭 시 팝업으로 나타나는 텍스트 (명소 이름)
-            popup=folium.Popup(name, parse_html=True), # parse_html=True로 설정하여 텍스트만 표시
+            popup=folium.Popup(name, parse_html=True),
             icon=folium.Icon(color='red', icon="info-sign")
         ).add_to(m)
 
     # 지도 출력 및 클릭 이벤트 처리
-    # 'returned_objects=["last_active_popup"]'를 통해 클릭된 팝업의 텍스트를 반환받습니다.
-    # 이를 통해 클릭된 마커의 이름을 직접적으로 얻을 수 있습니다.
     st_data = st_folium(m, width=500, height=400, returned_objects=["last_active_popup"])
-
 
 with col2:
     st.subheader("명소별 상세 설명")
-    
-    # 클릭된 마커의 이름을 저장할 변수
     clicked_spot_name = None
 
-    # st_folium에서 반환된 데이터 확인
-    if st_data:
-        # last_active_popup 정보가 있는지 확인 (클릭된 팝업의 텍스트 등)
-        if st_data.get("last_active_popup"):
-            # 팝업 텍스트에서 명소 이름을 추출
-            clicked_spot_name = st_data["last_active_popup"]
+    if st_data and st_data.get("last_active_popup"):
+        clicked_spot_name = st_data["last_active_popup"]
 
     if clicked_spot_name and clicked_spot_name in city_info["명소"]:
         st.write(f"**{clicked_spot_name}**")
