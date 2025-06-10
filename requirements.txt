@@ -3,4 +3,4 @@ streamlit-folium
 yfinance
 pandas
 matplotlib
-plotly
+koreanize_matplotlib
