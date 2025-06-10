@@ -4,7 +4,7 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="일본 관광지 가이드", layout="wide")
 
-# 관광지 정보 (이미지 URL 추가)
+# 관광지 정보
 tourist_spots = {
     "도쿄": {
         "위치": [35.682839, 139.759455],
@@ -75,44 +75,38 @@ tourist_spots = {
 st.sidebar.title("🇯🇵 일본 주요 도시")
 selected_city = st.sidebar.selectbox("도시를 선택하세요", list(tourist_spots.keys()))
 
-# 선택된 도시 정보 출력
+# 도시 정보 표시
 city_info = tourist_spots[selected_city]
 st.title(f"🇯🇵 {selected_city} 관광 가이드")
 st.markdown(city_info["설명"])
 
-## 📌 추천 관광지 목록 (가로 3칸)
+# 관광지 목록 이미지
 columns = st.columns(3)
 column_index = 0
-
 for name, spot in city_info["명소"].items():
     with columns[column_index]:
-        if "이미지" in spot and spot["이미지"]:
-            st.image(spot["이미지"], caption=name, use_container_width=True)  # 수정된 부분
-        else:
-            st.warning(f"'{name}' 에 대한 이미지가 없습니다.")
+        if "이미지" in spot:
+            st.image(spot["이미지"], caption=name, use_container_width=True)
         st.markdown(f"**{name}**")
     column_index = (column_index + 1) % 3
 
-## 🗺️ 관광 지도 및 명소 상세 설명 (2:1 비율 칼럼)
+# 지도 + 상세 설명 칼럼
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.subheader("관광 지도")
+    st.subheader("🗺️ 관광 지도")
     m = folium.Map(
         location=city_info["위치"],
         zoom_start=12,
-        tiles='OpenStreetMap',
-        attr='© OpenStreetMap contributors'
+        tiles='OpenStreetMap'
     )
 
-    # 도시 중심 마커
     folium.Marker(
         city_info["위치"],
         popup=f"{selected_city} 중심",
         icon=folium.Icon(color='blue')
     ).add_to(m)
 
-    # 명소 마커 추가
     for name, spot in city_info["명소"].items():
         folium.Marker(
             location=spot["위치"],
@@ -121,20 +115,15 @@ with col1:
             icon=folium.Icon(color='red', icon="info-sign")
         ).add_to(m)
 
-    # 지도와 상호작용, 클릭된 팝업 텍스트 받기
     st_data = st_folium(m, width=600, height=450, returned_objects=["last_active_popup"])
 
 with col2:
-    st.subheader("명소별 상세 설명")
-    clicked_spot_name = None
+    st.subheader("📍 명소별 상세 설명")
+    st.info("지도에서 명소 마커를 클릭하면 아래에 설명이 나타납니다.")
 
-    if st_data:
-        popup_text = st_data.get("last_active_popup")
-        if isinstance(popup_text, str):
-            clicked_spot_name = popup_text.strip()
-
+    clicked_spot_name = st_data.get("last_active_popup") if st_data else None
     if clicked_spot_name and clicked_spot_name in city_info["명소"]:
-        st.write(f"**{clicked_spot_name}**")
-        st.write(city_info["명소"][clicked_spot_name]["설명"])
-    else:
-        st.info("지도에서 명소 마커를 클릭하여 상세 설명을 확인하세요.")
+        spot = city_info["명소"][clicked_spot_name]
+        st.markdown("---")
+        st.markdown(f"### {clicked_spot_name}")
+        st.markdown(spot["설명"])
