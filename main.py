@@ -4,7 +4,7 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="일본 관광지 가이드", layout="wide")
 
-# 관광지 정보 데이터
+# 관광지 정보
 tourist_spots = {
     "도쿄": {
         "위치": [35.682839, 139.759455],
@@ -35,19 +35,36 @@ tourist_spots = {
     }
 }
 
-# 사이드바
-st.sidebar.title("일본 주요 도시")
+# 사이드바에서 도시 선택
+st.sidebar.title("🇯🇵 일본 주요 도시")
 selected_city = st.sidebar.selectbox("도시를 선택하세요", list(tourist_spots.keys()))
 
-# 본문
+# 선택된 도시 정보
 city_info = tourist_spots[selected_city]
 st.title(f"🇯🇵 {selected_city} 관광 가이드")
 st.markdown(city_info["설명"])
 
-# Folium 지도
-m = folium.Map(location=city_info["위치"], zoom_start=12)
-folium.Marker(city_info["위치"], popup=f"{selected_city} 중심", icon=folium.Icon(color='blue')).add_to(m)
+# 관광지 리스트 표시 (지도 위에)
+st.subheader("📌 추천 관광지 목록")
+for name, spot in city_info["명소"].items():
+    st.markdown(f"- **{name}**: {spot['설명']}")
 
+# 지도 생성
+m = folium.Map(
+    location=city_info["위치"],
+    zoom_start=12,
+    tiles='OpenStreetMap',  # 영어 타일
+    attr='© OpenStreetMap contributors'
+)
+
+# 중심 마커
+folium.Marker(
+    city_info["위치"],
+    popup=f"{selected_city} 중심",
+    icon=folium.Icon(color='blue')
+).add_to(m)
+
+# 관광지 마커 추가
 for name, spot in city_info["명소"].items():
     folium.Marker(
         location=spot["위치"],
@@ -56,13 +73,12 @@ for name, spot in city_info["명소"].items():
         icon=folium.Icon(color='red', icon="info-sign")
     ).add_to(m)
 
+# 지도 출력
 st.subheader("🗺️ 관광지도")
 st_data = st_folium(m, width=800, height=500)
 
-# 관광지 상세 설명
-st.subheader("📍 명소 설명")
+# 관광지 상세 설명 (아래쪽)
+st.subheader("🔍 명소별 상세 설명")
 for name, spot in city_info["명소"].items():
-    with st.expander(name):
+    with st.expander(f"{name}"):
         st.write(spot["설명"])
-        st.map(data={"lat": [spot["위치"][0]], "lon": [spot["위치"][1]]})
-
